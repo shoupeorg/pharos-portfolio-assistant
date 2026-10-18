@@ -29,7 +29,7 @@ export async function withPharosMcp(operation, options = {}) {
   let transport;
   let lastError;
   for (let attempt = 1; attempt <= 3; attempt += 1) {
-    client = new Client({ name: "pharos-portfolio-assistant", version: "2.0.0" });
+    client = new Client({ name: "pharos-portfolio-assistant", version: "3.0.0" });
     transport = new StreamableHTTPClientTransport(new URL(MCP_URL), {
       fetch: options.fetch || ((input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(25_000) }))
     });

@@ -1,5 +1,6 @@
 import { formatUnits } from "./fixed.js";
 import { TOKENS } from "./constants.js";
+import { formatElapsed } from "./performance.js";
 
 function norm(question) {
   return question.toLowerCase().replace(/[؟?!.،,]/g, " ").replace(/\s+/g, " ").trim();
@@ -40,7 +41,7 @@ export function answerQuestion(snapshot, question) {
   const done = (result) => {
     const missing = result.sourceIds.filter((id) => !knownIds.has(id));
     if (missing.length) throw new Error(`Answer source integrity failure: ${missing.join(", ")}`);
-    return { engineVersion: "2.0.0", ...result };
+    return { engineVersion: "3.0.0", ...result };
   };
   if (intent === "read_only_refusal") return done({ intent, status: "refused", answer: "This assistant is strictly read-only. It cannot send, swap, approve, deposit, withdraw, sign, or broadcast transactions. No private key is needed.", sourceIds: [] });
   if (intent === "ambiguous") return done({ intent, status: "clarification", answer: "Ask about checked wallet balances, the location of a named supported asset, vault positions, the biggest comparable position, yield/rewards, or wallet-versus-deposited exposure.", sourceIds: [] });
@@ -103,9 +104,18 @@ export function answerQuestion(snapshot, question) {
   }
 
   if (intent === "yield") {
-    const ids = positions.flatMap((p) => [p.balanceSourceId, p.conversionSourceId]);
-    const positionText = positions.map((p) => `${p.name} currently represents ${p.underlyingFormatted} USDC`).join("; ") || "No non-zero supported position was found";
-    return done({ intent, status: "unknown", answer: `${positionText}. Realized earnings are UNKNOWN: the chain snapshot has no wallet cost basis or observation interval, and no verified APY/reward feed is used. A share-to-asset ratio is not presented as realized profit.${sourceSuffix(ids)}`, sourceIds: ids });
+    const metric = snapshot.performance;
+    if (metric?.status === "ok") {
+      const direction = BigInt(metric.deltaAssetsRaw) > 0n ? "increased" : BigInt(metric.deltaAssetsRaw) < 0n ? "decreased" : "was unchanged";
+      return done({
+        intent, status: "ok",
+        answer: `Verified vault share-value change over the observed period: ${metric.fixedShareLabel} converted to ${metric.startAssetsFormatted} ${metric.assetSymbol} at block ${metric.start.blockNumber} and ${metric.endAssetsFormatted} ${metric.assetSymbol} at block ${metric.end.blockNumber}. The fixed-share value ${direction} by ${metric.percentFormatted}% over ${formatElapsed(metric.elapsedSeconds)}. This is historical vault share-value performance, not APR/APY, wallet profit, proof that this wallet held the shares throughout the interval, or a guaranteed future rate. Personal realized earnings remain UNKNOWN because wallet cost basis and ownership history are unavailable.${sourceSuffix(metric.sourceIds)}`,
+        sourceIds: metric.sourceIds
+      });
+    }
+    const ids = metric?.sourceIds || [];
+    const checked = metric ? ` A fixed ${metric.fixedShareLabel} historical conversion was checked for the official JTRSY/USDC vault, but the metric could not be verified: ${metric.error}.` : " This historical snapshot predates the performance adapter.";
+    return done({ intent, status: "unknown", answer: `Realized earnings are UNKNOWN: the chain snapshot has no wallet cost basis or ownership interval, and no verified APY/reward feed is used.${checked} No current position value is relabeled as earnings.${sourceSuffix(ids)}`, sourceIds: ids });
   }
 
   if (intent === "allocation") {

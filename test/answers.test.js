@@ -103,6 +103,6 @@ test("every answer source ID resolves to an observation", () => {
   for (const question of ["tokens I hold", "where is my USDC", "protocol positions", "biggest position", "what yield am I earning", "wallet versus deposited", "HYB من کجاست؟"]) {
     const answer = answerQuestion(snap, question);
     assert.ok(answer.sourceIds.every((id) => known.has(id)), question);
-    assert.equal(answer.engineVersion, "2.0.0");
+    assert.equal(answer.engineVersion, "3.0.0");
   }
 });

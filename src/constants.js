@@ -46,6 +46,14 @@ export const PUBLIC_EXAMPLES = [
   }
 ];
 
+export const YIELD_METRIC = {
+  adapterId: "centrifuge-jtrsy-usdc",
+  lookbackBlocks: 100000,
+  fixedShareRaw: "1000000",
+  fixedShareLabel: "1 JTRSY",
+  sourceUrl: "https://docs.centrifuge.io/developer/protocol/guides/invest-into-a-vault/"
+};
+
 export const SELECTORS = {
   balanceOf: "0x70a08231",
   decimals: "0x313ce567",

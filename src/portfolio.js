@@ -1,6 +1,7 @@
-import { CHAIN_ID, EXPLORER, MCP_URL, NETWORK, SELECTORS, TOKENS, VAULTS } from "./constants.js";
+import { CHAIN_ID, EXPLORER, MCP_URL, NETWORK, SELECTORS, TOKENS, VAULTS, YIELD_METRIC } from "./constants.js";
 import { assertAddress, decodeAddress, decodeUint, encodeAddressCall, encodeUintCall, formatUnits } from "./fixed.js";
 import { withPharosMcp } from "./pharos-mcp.js";
+import { calculateShareValueChange } from "./performance.js";
 
 function id(prefix, index) { return `${prefix}-${String(index).padStart(2, "0")}`; }
 function codeBytes(code) { return code === "0x" ? 0 : (code.length - 2) / 2; }
@@ -127,9 +128,108 @@ export async function readPortfolio(walletInput, options = {}) {
       }
     }
 
+    const metricVault = VAULTS.find((vault) => vault.id === YIELD_METRIC.adapterId);
+    const metricRelationship = observations.find((source) => source.kind === "vault-relationship" && source.adapterId === metricVault.id);
+    const metricCode = [metricVault.address, metricVault.receiptToken.address, metricVault.asset.address]
+      .map((address) => codeObservations.get(address.toLowerCase()));
+    const currentMetricBlock = add({
+      kind: "performance-block", adapterId: metricVault.id, contract: null, method: "get_block", arguments: [blockNumber],
+      status: "ok", requirement: "informational", raw: block.hash, hash: block.hash,
+      timestamp: Number(BigInt(block.timestamp)), interpreted: `block ${blockNumber} at ${Number(BigInt(block.timestamp))}`
+    });
+    const historicalBlockNumber = Math.max(0, blockNumber - YIELD_METRIC.lookbackBlocks);
+    const historicalBlock = await safe({
+      kind: "performance-block", adapterId: metricVault.id, contract: null, method: "get_block", arguments: [historicalBlockNumber],
+      blockNumber: historicalBlockNumber, requirement: "informational"
+    }, async () => {
+      const result = await call("get_block", { block: historicalBlockNumber, includeTransactions: false });
+      return { raw: result.hash, hash: result.hash, timestamp: Number(BigInt(result.timestamp)), interpreted: `block ${historicalBlockNumber} at ${Number(BigInt(result.timestamp))}` };
+    });
+    const historicalCode = await safe({
+      kind: "performance-bytecode", adapterId: metricVault.id, contract: metricVault.address, method: "get_code(vault,share,asset)",
+      arguments: [metricVault.address, metricVault.receiptToken.address, metricVault.asset.address], blockNumber: historicalBlockNumber, requirement: "informational"
+    }, async () => {
+      const results = await Promise.all([metricVault.address, metricVault.receiptToken.address, metricVault.asset.address]
+        .map((address) => call("get_code", { address, block: historicalBlockNumber })));
+      const bytes = results.map((result) => codeBytes(result.code));
+      if (bytes.some((count) => !count)) throw new Error("Required vault/share/asset bytecode was absent at the historical block.");
+      return { raw: bytes.join(":"), interpreted: `vault/share/asset runtime bytes=${bytes.join("/")}`, bytes };
+    });
+    const historicalDecimals = await safe({
+      kind: "performance-decimals", adapterId: metricVault.id, contract: metricVault.address, method: "share.decimals/asset.decimals",
+      arguments: [metricVault.receiptToken.address, metricVault.asset.address], blockNumber: historicalBlockNumber, requirement: "informational"
+    }, async () => {
+      if (historicalCode.status !== "ok") throw new Error("Historical bytecode verification failed.");
+      const [shareResult, assetResult] = await Promise.all([
+        call("eth_call", { transaction: { to: metricVault.receiptToken.address, data: SELECTORS.decimals }, block: historicalBlockNumber }),
+        call("eth_call", { transaction: { to: metricVault.asset.address, data: SELECTORS.decimals }, block: historicalBlockNumber })
+      ]);
+      const shareDecimals = Number(decodeUint(shareResult.result, "historical JTRSY decimals"));
+      const assetDecimals = Number(decodeUint(assetResult.result, "historical USDC decimals"));
+      if (shareDecimals !== metricVault.receiptToken.expectedDecimals || assetDecimals !== metricVault.asset.expectedDecimals) throw new Error(`Unexpected historical share/asset decimals ${shareDecimals}/${assetDecimals}.`);
+      return { raw: `${shareResult.result}:${assetResult.result}`, shareDecimals, assetDecimals, interpreted: `share=${shareDecimals}; asset=${assetDecimals}` };
+    });
+    const historicalRelationship = await safe({
+      kind: "performance-relationship", adapterId: metricVault.id, contract: metricVault.address, method: "asset/share",
+      arguments: [], blockNumber: historicalBlockNumber, requirement: "informational"
+    }, async () => {
+      if (historicalCode.status !== "ok" || historicalDecimals.status !== "ok") throw new Error("Historical bytecode or decimals verification failed.");
+      const [assetResult, shareResult] = await Promise.all([
+        call("eth_call", { transaction: { to: metricVault.address, data: SELECTORS.asset }, block: historicalBlockNumber }),
+        call("eth_call", { transaction: { to: metricVault.address, data: SELECTORS.share }, block: historicalBlockNumber })
+      ]);
+      const asset = decodeAddress(assetResult.result, "historical JTRSY vault asset");
+      const share = decodeAddress(shareResult.result, "historical JTRSY vault share");
+      if (asset !== metricVault.asset.address.toLowerCase() || share !== metricVault.receiptToken.address.toLowerCase()) throw new Error(`Unexpected historical asset/share relationship ${asset}/${share}.`);
+      return { raw: `${assetResult.result}:${shareResult.result}`, interpreted: `asset=${asset}; share=${share}`, asset, share };
+    });
+    const historicalConversion = await safe({
+      kind: "performance-conversion", adapterId: metricVault.id, contract: metricVault.address, method: "convertToAssets",
+      arguments: [YIELD_METRIC.fixedShareRaw], blockNumber: historicalBlockNumber, decimals: metricVault.asset.expectedDecimals,
+      fixedShareRaw: YIELD_METRIC.fixedShareRaw, fixedShareDecimals: metricVault.receiptToken.expectedDecimals, requirement: "informational"
+    }, async () => {
+      if (historicalBlock.status !== "ok" || historicalRelationship.status !== "ok") throw new Error("Historical block or relationship verification unavailable.");
+      const result = await call("eth_call", { transaction: { to: metricVault.address, data: encodeUintCall(SELECTORS.convertToAssets, YIELD_METRIC.fixedShareRaw) }, block: historicalBlockNumber });
+      const raw = decodeUint(result.result, "historical fixed-share convertToAssets").toString();
+      return { raw, formatted: formatUnits(raw, metricVault.asset.expectedDecimals, metricVault.asset.expectedDecimals), symbol: metricVault.asset.symbol, timestamp: historicalBlock.timestamp };
+    });
+    const currentConversion = await safe({
+      kind: "performance-conversion", adapterId: metricVault.id, contract: metricVault.address, method: "convertToAssets",
+      arguments: [YIELD_METRIC.fixedShareRaw], decimals: metricVault.asset.expectedDecimals,
+      fixedShareRaw: YIELD_METRIC.fixedShareRaw, fixedShareDecimals: metricVault.receiptToken.expectedDecimals, requirement: "informational"
+    }, async () => {
+      if (metricCode.some((source) => source?.status !== "ok") || metricRelationship?.status !== "ok") throw new Error("Current vault code or asset/share relationship unavailable.");
+      const result = await call("eth_call", { transaction: { to: metricVault.address, data: encodeUintCall(SELECTORS.convertToAssets, YIELD_METRIC.fixedShareRaw) }, block: blockNumber });
+      const raw = decodeUint(result.result, "current fixed-share convertToAssets").toString();
+      return { raw, formatted: formatUnits(raw, metricVault.asset.expectedDecimals, metricVault.asset.expectedDecimals), symbol: metricVault.asset.symbol, timestamp: currentMetricBlock.timestamp };
+    });
+    let performance;
+    try {
+      if (historicalConversion.status !== "ok" || currentConversion.status !== "ok") throw new Error(historicalConversion.error || currentConversion.error || "Historical conversion unavailable.");
+      const calculated = calculateShareValueChange(historicalConversion.raw, currentConversion.raw, metricVault.asset.expectedDecimals, currentMetricBlock.timestamp - historicalBlock.timestamp);
+      performance = {
+        status: "ok", metric: "vault-share-value-change", adapterId: metricVault.id, vault: metricVault.address,
+        fixedShareRaw: YIELD_METRIC.fixedShareRaw, fixedShareDecimals: metricVault.receiptToken.expectedDecimals,
+        fixedShareLabel: YIELD_METRIC.fixedShareLabel, asset: metricVault.asset.address, assetSymbol: metricVault.asset.symbol,
+        start: { blockNumber: historicalBlockNumber, timestamp: historicalBlock.timestamp, assetsRaw: historicalConversion.raw, sourceIds: [historicalBlock.id, historicalCode.id, historicalDecimals.id, historicalRelationship.id, historicalConversion.id] },
+        end: { blockNumber, timestamp: currentMetricBlock.timestamp, assetsRaw: currentConversion.raw, sourceIds: [currentMetricBlock.id, tokenDecimals.usdc.id, tokenDecimals.jtrsy.id, metricRelationship.id, currentConversion.id] },
+        ...calculated, sourceIds: [historicalBlock.id, historicalCode.id, historicalDecimals.id, historicalRelationship.id, historicalConversion.id, currentMetricBlock.id, tokenDecimals.usdc.id, tokenDecimals.jtrsy.id, metricRelationship.id, currentConversion.id],
+        sourceUrl: YIELD_METRIC.sourceUrl,
+        disclosure: "Vault share-value change over the observed period. Not wallet profit, not proof of ownership throughout the interval, not APR/APY, and not a guaranteed future rate."
+      };
+    } catch (error) {
+      performance = {
+        status: "error", metric: "vault-share-value-change", adapterId: metricVault.id, vault: metricVault.address,
+        fixedShareRaw: YIELD_METRIC.fixedShareRaw, fixedShareDecimals: metricVault.receiptToken.expectedDecimals,
+        fixedShareLabel: YIELD_METRIC.fixedShareLabel, error: error.message,
+        sourceIds: [historicalBlock.id, historicalCode.id, historicalDecimals.id, historicalRelationship.id, historicalConversion.id, currentMetricBlock.id, tokenDecimals.usdc?.id, tokenDecimals.jtrsy?.id, metricRelationship?.id, currentConversion.id].filter(Boolean),
+        sourceUrl: YIELD_METRIC.sourceUrl
+      };
+    }
+
     const snapshot = {
-      schemaVersion: 2,
-      engineVersion: "2.0.0",
+      schemaVersion: 3,
+      engineVersion: "3.0.0",
       id: options.id || `live-${wallet.slice(2, 10)}-${blockNumber}`,
       mode: options.mode || "LIVE",
       capturedAt: options.capturedAt || new Date().toISOString(),
@@ -148,6 +248,7 @@ export async function readPortfolio(walletInput, options = {}) {
       },
       observations,
       positions,
+      performance,
       accounting: {
         rule: "Wallet receipt-token balances are displayed, but USDC underlying exposure is counted once through each vault conversion.",
         walletUsdcRaw: tokenBalances.usdc.status === "ok" ? tokenBalances.usdc.raw : null,

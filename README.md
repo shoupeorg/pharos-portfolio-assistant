@@ -1,6 +1,6 @@
 # Pharos Portfolio Assistant
 
-A read-only Agent Arena portfolio assistant for arbitrary public addresses on Pharos Pacific Mainnet. The CLI, Worker API, web UI, and root Skill share one deterministic answer engine. Every live number is attached to the exact contract call and one pinned block.
+A read-only Agent Arena portfolio assistant for arbitrary public addresses on Pharos Pacific Mainnet. The CLI, Worker API, web UI, and root Skill share one deterministic answer engine. Portfolio state is pinned to one block; the historical performance metric explicitly cites its two fixed comparison blocks.
 
 > Coverage is deliberately bounded. This checks PROS, USDC, JTRSY, HYB/pRNH, and two distinct vault routes within **one protocol, Centrifuge**. It does not claim all-token discovery, two separate protocols, or a complete USD portfolio valuation.
 
@@ -57,11 +57,12 @@ Where is my USDC?
 99.67043747 pRNH in pNYLIM-HYB Wrapped Vault. Receipt exposure is counted once.
 
 What am I earning?
-Realized earnings are UNKNOWN: no wallet cost basis, observation interval, or
-verified APY/reward feed is available. The share-to-asset ratio is not profit.
+1 JTRSY converted to 1.119288 USDC at block 20489933 and 1.119288 USDC at
+block 20589933: 0% vault share-value change over 1d 3h 10m 55s. This is not
+APR/APY or wallet profit. Personal realized earnings remain UNKNOWN.
 ```
 
-The original v1 snapshot remains unchanged in [`evidence/live-public-example.json`](./evidence/live-public-example.json). Corrected engine v2 evidence is stored separately in [`evidence/live-corrected-v2.json`](./evidence/live-corrected-v2.json). See [`evidence/manifest.md`](./evidence/manifest.md) for requirement mapping.
+The original v1 snapshot remains unchanged in [`evidence/live-public-example.json`](./evidence/live-public-example.json), and corrected adapter evidence remains in [`evidence/live-corrected-v2.json`](./evidence/live-corrected-v2.json). Genuine engine-v3 yield evidence is stored separately in [`evidence/live-yield-v3.json`](./evidence/live-yield-v3.json). See [`evidence/manifest.md`](./evidence/manifest.md) for requirement mapping.
 
 ## API and persistence
 
@@ -87,7 +88,9 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\publish-deploy
 - Mandatory adapter dependencies are contract bytecode, token decimals, wallet receipt balance, vault asset/share relationship where applicable, wrapper backing/base-vault relationship where applicable, and conversion. A failure excludes that position from totals/ranking without discarding unrelated balances. `totalAssets` is informational and cannot validate or invalidate a wallet position.
 - Overall rankings are refused when assets lack a common defensible unit. Only USDC-underlying vault exposure is compared here.
 - `0` is a successful read. A timeout/revert is `FAILED`; other successful adapters stay visible and answers become `PARTIAL`.
-- Current conversion rates do not prove historical earnings. No APY is invented.
+- The yield metric uses exactly `1 JTRSY` (`1,000,000` share atomic units) at the current portfolio block and exactly `100,000` blocks earlier. At each endpoint the adapter verifies historical code and the vault's USDC asset/JTRSY share relationship, then calls `convertToAssets` through Chain MCP. Percentage change is `(endAssets - startAssets) / startAssets × 100`, calculated with `BigInt` at six decimal percentage precision.
+- The metric is labeled **vault share-value change over the observed period**. It is not annualized, not APR/APY, not personal profit, and does not imply that the queried wallet owned shares throughout the interval. Personal realized earnings remain unknown without cost basis and ownership history.
+- The method follows Centrifuge's documented [`convertToAssets` share-price guidance](https://docs.centrifuge.io/developer/protocol/guides/invest-into-a-vault/) and [ERC-4626 conversion semantics](https://eips.ethereum.org/EIPS/eip-4626). Historical-read failure preserves the honest `UNKNOWN` fallback.
 
 ## Read-only security
 
@@ -105,11 +108,11 @@ Installation copies instructions; it does not connect a wallet or install anythi
 
 ## Tests
 
-`npm test` uses injected MCP responses against the actual adapter engine. It covers pinned-block reads/conversions, JTRSY share-token and wrapper/base-vault relationships, required-failure exclusion, standalone HYB, receipt-token double-count prevention, successful zero vs failure, mixed English/Persian location wording, unsupported assets, source-ID integrity, exact decimals, unknown yield, and read-only refusal. Injected failures are deterministic tests—not claims of real protocol outages.
+`npm test` uses injected MCP responses against the actual adapter engine. It covers pinned current/historical reads, JTRSY share-token and wrapper/base-vault relationships, fixed-share conversion, exact positive/zero/negative performance math, historical source failure, source-ID integrity for every number, standalone HYB, receipt-token double-count prevention, successful zero vs failure, mixed English/Persian recognition, unsupported assets, honest personal-profit limits, and read-only refusal. Injected failures are deterministic tests—not claims of real protocol outages.
 
 ## Material limitations
 
 - Both adapters are Centrifuge vault routes, not two different protocols.
 - Arbitrary ERC-20 discovery and USD price discovery are intentionally absent; only the documented checked list is reported.
 - The recorded EOA has a meaningful HYB wrapper position but a successful zero JTRSY position. JTRSY adapter evidence is real, but not a fabricated non-zero user holding.
-- No cost basis, realized P&L, APY, or rewards feed is available, so earnings remain unknown.
+- No wallet cost basis, ownership history, realized P&L, APY, or rewards feed is available. The verified historical vault metric does not remove those personal-earnings limitations.
