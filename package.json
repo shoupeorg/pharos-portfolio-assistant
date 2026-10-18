@@ -1,0 +1,25 @@
+{
+  "name": "pharos-portfolio-assistant",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "bin": { "pharos-portfolio": "./src/cli.js" },
+  "scripts": {
+    "build": "rollup -c",
+    "cli": "node src/cli.js",
+    "test": "node --test",
+    "check": "npm test && npm run build",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy --no-bundle",
+    "db:migrate:local": "wrangler d1 migrations apply pharos-portfolio-assistant --local",
+    "db:migrate:remote": "wrangler d1 migrations apply pharos-portfolio-assistant --remote"
+  },
+  "dependencies": { "@modelcontextprotocol/sdk": "1.32.1" },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "29.0.0",
+    "@rollup/plugin-json": "6.1.0",
+    "@rollup/plugin-node-resolve": "16.0.3",
+    "rollup": "4.64.9",
+    "wrangler": "4.151.1"
+  }
+}

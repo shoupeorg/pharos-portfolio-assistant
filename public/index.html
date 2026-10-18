@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pharos Portfolio Assistant</title>
+  <meta name="description" content="Read-only, source-linked Pharos portfolio questions through official Chain MCP.">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main class="desktop">
+  <header class="desktop-header">
+    <a class="brand" href="/"><span class="logo-box" aria-hidden="true"><i></i><i></i><i></i></span><span>PHAROS<span class="brand-sub">PORTFOLIO ASSISTANT</span></span></a>
+    <span class="desktop-badge">PACIFIC MAINNET / 1672</span>
+  </header>
+  <section class="app-window">
+    <div class="titlebar"><span><b class="app-icon">▦</b> PORTFOLIO_ASSISTANT.EXE</span><span class="window-chrome"><i>_</i><i>□</i><i>×</i></span></div>
+    <div class="menubar"><span>FILE</span><span>VIEW</span><span>SOURCES</span><span class="menu-right">READ ONLY · OFFICIAL CHAIN MCP</span></div>
+    <div class="window-body">
+      <section class="intro"><p class="kicker">PHAROS AGENT ARENA / PINNED-BLOCK PORTFOLIO RECONCILIATION</p><h1>ASK → TRACE → RECONCILE<span class="cursor">_</span></h1><p>Enter any public wallet, read a bounded token list and two distinct Centrifuge vault routes at one block, then ask sourced English or Persian questions. No wallet connection. No transactions.</p></section>
+      <div class="notice"><b>SCOPED COVERAGE</b><span>PROS, USDC, JTRSY and HYB/pRNH only. Two vaults within one protocol—not “all assets.” Receipt tokens are mapped to underlying USDC without double counting.</span></div>
+
+      <fieldset class="control-panel"><legend>01 · WALLET & SNAPSHOT</legend>
+        <label class="field">PUBLIC WALLET ADDRESS<input id="wallet" spellcheck="false" placeholder="0x…"></label>
+        <div class="controls"><button id="example" class="classic">USE VERIFIED PUBLIC EXAMPLE</button><button id="load" class="primary">LOAD LIVE PORTFOLIO →</button><button id="historyRefresh" class="classic">RECORDED HISTORY</button></div>
+        <p class="micro" id="exampleNote">No default wallet is silently loaded. The example is an unattributed public EOA, not the USDC or vault contract.</p>
+      </fieldset>
+
+      <section class="telemetry"><div><span>MODE</span><strong id="mode">—</strong></div><div><span>STATUS</span><strong id="status">READY</strong></div><div><span>PINNED BLOCK</span><strong id="block">—</strong></div><div><span>SOURCES</span><strong id="sourceCount">—</strong></div></section>
+
+      <section class="output-window"><div class="output-title"><span>02 · BALANCES_AND_POSITIONS.OUT</span><span id="walletShort">NO WALLET</span></div>
+        <div class="two-col"><div><h2>SPENDABLE WALLET</h2><div id="balances" class="cards"><div class="empty">LOAD A PORTFOLIO</div></div></div><div><h2>PROTOCOL POSITIONS</h2><div id="positions" class="cards"><div class="empty">TWO VAULT ROUTES WILL APPEAR HERE</div></div></div></div>
+      </section>
+
+      <section class="output-window"><div class="output-title"><span>03 · ASK_PORTFOLIO.AI</span><span>DETERMINISTIC / GROUNDED</span></div>
+        <div class="askbox"><label class="field">QUESTION / سؤال<input id="question" placeholder="Where is my USDC?"></label><button id="ask" class="primary">ASK →</button></div>
+        <div class="examples" id="examples"><button>What tokens do I hold?</button><button>Where is my USDC?</button><button>Which protocols am I using?</button><button>What is my biggest position?</button><button>What am I earning?</button><button>موجودی کیف پولم چقدره؟</button></div>
+        <article id="answer" class="answer"><b>SYSTEM READY</b><p>Load a portfolio, then ask a supported question.</p></article>
+      </section>
+
+      <section class="output-window"><div class="output-title"><span>04 · EXPOSURE_RECONCILIATION.OUT</span><span>NO DOUBLE COUNTING</span></div><div id="reconcile" class="reconcile">Receipt tokens will be mapped to their underlying exposure here.</div></section>
+
+      <section class="output-window"><div class="output-title"><span>05 · CONTRACT_BLOCK_READ_DETAILS.LOG</span><button id="toggleSources" class="mini">EXPAND</button></div><div id="sources" class="sources" hidden></div></section>
+      <section class="output-window"><div class="output-title"><span>06 · RECORDED_SNAPSHOTS.D1</span><span>PERSISTENT</span></div><div id="history" class="history"><div class="empty">PRESS RECORDED HISTORY</div></div></section>
+    </div>
+    <div class="statusbar"><span><i class="status-dot"></i><b id="systemStatus">SYSTEM READY</b></span><span>OFFICIAL MCP</span><span>NO SIGNING / NO TRANSACTIONS</span></div>
+  </section>
+  <footer><span>PHAROS AGENT ARENA · PORTFOLIO ASSISTANT</span><a href="https://docs.centrifuge.io/developer/protocol/deployments/" target="_blank" rel="noopener noreferrer">OFFICIAL VAULT SOURCE ↗</a></footer>
+</main><script src="/app.js" defer></script>
+</body></html>
