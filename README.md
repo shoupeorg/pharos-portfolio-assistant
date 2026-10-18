@@ -32,11 +32,11 @@ The public address is user-controlled. The included example is an unattributed p
 
 Supported question families include English and Persian paraphrases:
 
-1. `What tokens do I hold?` / `موجودی کیف پولم چقدره؟`
-2. `Where is my USDC?` / `USDC من کجاست؟`
-3. `Which protocols am I using?` / `چه موقعیت‌هایی توی پروتکل‌ها دارم؟`
-4. `What is my biggest position?` / `بزرگ‌ترین موقعیتم کدومه؟`
-5. `What am I earning?` / `چقدر سود می‌گیرم؟`
+1. `What tokens do I hold?`
+2. `Where is my USDC?`
+3. `Which protocols am I using?`
+4. `What is my biggest position?`
+5. `What am I earning?`
 6. `How much is in my wallet versus deposited?`
 
 This is a deterministic intent parser, not an LLM. Unknown questions are not silently remapped. Transaction requests are refused.

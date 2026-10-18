@@ -26,10 +26,10 @@ npm install
 node src/cli.js 0x197afc201b8d839288d7a7e9a03fb95669e3b0f3 "Where is my USDC?"
 ```
 
-Persian questions are supported, for example:
+Persian input recognition remains supported internally and covered by tests. Public examples remain English-only:
 
 ```sh
-node src/cli.js 0x197afc201b8d839288d7a7e9a03fb95669e3b0f3 "بزرگ‌ترین موقعیتم کدومه؟"
+node src/cli.js 0x197afc201b8d839288d7a7e9a03fb95669e3b0f3 "What is my biggest position?"
 ```
 
 ## Procedure and safety
