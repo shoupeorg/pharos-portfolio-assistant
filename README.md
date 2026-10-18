@@ -11,11 +11,11 @@ Network: Pharos Pacific Mainnet, chain ID `1672`. All application chain reads us
 | Route | Contract | Asset / receipt semantics | Official source |
 |---|---|---|---|
 | Centrifuge JTRSY / USDC | `0x160e0dd4c4f693b05eca83bc2ec6fd51954fc434` | `asset()` = USDC; `share()`/receipt = JTRSY. Wallet JTRSY is converted using `convertToAssets` at the pinned block. | [Centrifuge deployments](https://docs.centrifuge.io/developer/protocol/deployments/) |
-| Centrifuge pNYLIM-HYB wrapper | `0x6ce4bc043398ac40392d1e063328048072b2075d` | pRNH receipt shares convert to USDC. Its HYB backing is checked, and the official HYB/USDC base vault `0x74189e017d3aefee48f3cc5bf592694b2a016da8` is verified to expose USDC asset + HYB share. | [Official HYB vault deployment](https://docs.centrifuge.io/developer/protocol/deployments/) and [on-chain wrapper](https://pharos.socialscan.io/address/0x6ce4bc043398ac40392d1e063328048072b2075d) |
+| Third-party pNYLIM-HYB wrapper over Centrifuge | `0x6ce4bc043398ac40392d1e063328048072b2075d` | pRNH receipt shares convert to USDC only after mandatory checks confirm wrapper bytecode/interface, USDC asset, HYB backing, and the official base vault `0x74189e017d3aefee48f3cc5bf592694b2a016da8` exposes USDC asset + HYB share. | [On-chain wrapper](https://pharos.socialscan.io/address/0x6ce4bc043398ac40392d1e063328048072b2075d); [official HYB vault deployment](https://docs.centrifuge.io/developer/protocol/deployments/) |
 
 USDC: `0xC879C018dB60520F4355C26eD1a6D572cdAC1815` ([Circle Pharos USDC](https://www.circle.com/multi-chain-usdc/pharos)). JTRSY: `0xc18e6f730896971a79d748e8dea61067a9bc6040`. HYB: `0x4827c7ecce4f07adfe44a97165f06a199e7d2505`.
 
-The pNYLIM wrapper is bytecode- and interface-verified on-chain and linked to the official HYB vault by its HYB backing; it is not separately listed in Centrifuge's deployment table. This limitation is intentional and disclosed.
+The pNYLIM wrapper is **not** listed in Centrifuge's official deployment table. It is therefore labeled third-party/unattributed, not an official Centrifuge-owned contract. Its current integration is established only by mandatory pinned-block on-chain checks: code exists, `asset()` is USDC, the wrapper holds HYB, the official base vault reports USDC/HYB as asset/share, and `convertToAssets` succeeds. These checks establish the observed route, not ownership or endorsement.
 
 ## Install and run
 
@@ -61,7 +61,7 @@ Realized earnings are UNKNOWN: no wallet cost basis, observation interval, or
 verified APY/reward feed is available. The share-to-asset ratio is not profit.
 ```
 
-See [`evidence/live-public-example.json`](./evidence/live-public-example.json) for all 23 observations and source IDs, and [`evidence/manifest.md`](./evidence/manifest.md) for requirement mapping.
+The original v1 snapshot remains unchanged in [`evidence/live-public-example.json`](./evidence/live-public-example.json). Corrected engine v2 evidence is stored separately in [`evidence/live-corrected-v2.json`](./evidence/live-corrected-v2.json). See [`evidence/manifest.md`](./evidence/manifest.md) for requirement mapping.
 
 ## API and persistence
 
@@ -83,6 +83,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\publish-deploy
 
 - JavaScript `BigInt` and decimal strings are used for balances, conversions, totals, and percentages; token amounts are never converted to `Number` for accounting.
 - Wallet receipt balances remain visible, while their converted underlying is counted once in reconciliation.
+- Balance answers enumerate every successfully checked wallet balance: PROS, USDC, JTRSY, standalone HYB, and pRNH. JTRSY/pRNH are labeled receipt tokens and HYB is labeled a protocol share token.
+- Mandatory adapter dependencies are contract bytecode, token decimals, wallet receipt balance, vault asset/share relationship where applicable, wrapper backing/base-vault relationship where applicable, and conversion. A failure excludes that position from totals/ranking without discarding unrelated balances. `totalAssets` is informational and cannot validate or invalidate a wallet position.
 - Overall rankings are refused when assets lack a common defensible unit. Only USDC-underlying vault exposure is compared here.
 - `0` is a successful read. A timeout/revert is `FAILED`; other successful adapters stay visible and answers become `PARTIAL`.
 - Current conversion rates do not prove historical earnings. No APY is invented.
@@ -103,7 +105,7 @@ Installation copies instructions; it does not connect a wallet or install anythi
 
 ## Tests
 
-`npm test` covers both adapter semantics with documented fixtures, twelve English/Persian intent paraphrases, source-ID mapping, large exact decimals, receipt-token double-count prevention, incomparable ranking refusal, unknown realized yield, successful zero vs injected failure, partial results, ambiguity/unsupported handling, invalid address/network input, and read-only transaction refusal. Injected failures are deterministic tests—not claims of real protocol outages.
+`npm test` uses injected MCP responses against the actual adapter engine. It covers pinned-block reads/conversions, JTRSY share-token and wrapper/base-vault relationships, required-failure exclusion, standalone HYB, receipt-token double-count prevention, successful zero vs failure, mixed English/Persian location wording, unsupported assets, source-ID integrity, exact decimals, unknown yield, and read-only refusal. Injected failures are deterministic tests—not claims of real protocol outages.
 
 ## Material limitations
 

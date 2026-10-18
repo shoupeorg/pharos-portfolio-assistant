@@ -18,21 +18,23 @@ export const VAULTS = [
     address: "0x160e0dd4c4f693b05eca83bc2ec6fd51954fc434",
     receiptToken: TOKENS.jtrsy,
     asset: TOKENS.usdc,
+    verifyShareMethod: true,
     sourceUrl: "https://docs.centrifuge.io/developer/protocol/deployments/",
     semantics: "Official Centrifuge Pharos JTRSY vault. Wallet JTRSY shares are converted with convertToAssets at the pinned block."
   },
   {
     id: "centrifuge-hyb-wrapped-usdc",
-    protocol: "Centrifuge",
-    name: "pNYLIM-HYB Wrapped Vault",
+    protocol: "Third-party wrapper over a Centrifuge vault",
+    name: "pNYLIM-HYB Third-party Wrapper",
     address: TOKENS.prnh.address,
     receiptToken: TOKENS.prnh,
     asset: TOKENS.usdc,
     backingShare: TOKENS.hyb,
     officialBaseVault: "0x74189e017d3aefee48f3cc5bf592694b2a016da8",
-    sourceUrl: "https://docs.centrifuge.io/developer/protocol/deployments/",
-    explorerUrl: `${EXPLORER}/address/${TOKENS.prnh.address}`,
-    semantics: "Verified pNYLIM-HYB ERC-4626 wrapper. pRNH shares convert to USDC; the wrapper's HYB backing and the official HYB/USDC vault are checked at the same block."
+    sourceUrl: `${EXPLORER}/address/${TOKENS.prnh.address}`,
+    officialBaseVaultSourceUrl: "https://docs.centrifuge.io/developer/protocol/deployments/",
+    provenance: "The wrapper is not listed in Centrifuge's official deployment table. Its bytecode/interface, USDC asset, HYB backing, and the official base-vault HYB/USDC relationship are verified on-chain; ownership or official Centrifuge provenance is not claimed.",
+    semantics: "Third-party ERC-4626-compatible pNYLIM-HYB wrapper. pRNH shares convert to USDC only after its code, asset, HYB backing, and official HYB/USDC base-vault relationship pass mandatory checks at the pinned block."
   }
 ];
 

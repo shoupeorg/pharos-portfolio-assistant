@@ -25,11 +25,24 @@ async function retry(fn, attempts = 3) {
 }
 
 export async function withPharosMcp(operation, options = {}) {
-  const client = new Client({ name: "pharos-portfolio-assistant", version: "1.0.0" });
-  const transport = new StreamableHTTPClientTransport(new URL(MCP_URL), {
-    fetch: options.fetch || ((input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(25_000) }))
-  });
-  await retry(() => client.connect(transport));
+  let client;
+  let transport;
+  let lastError;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    client = new Client({ name: "pharos-portfolio-assistant", version: "2.0.0" });
+    transport = new StreamableHTTPClientTransport(new URL(MCP_URL), {
+      fetch: options.fetch || ((input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(25_000) }))
+    });
+    try { await client.connect(transport); lastError = null; break; }
+    catch (error) {
+      lastError = error;
+      try { await transport.terminateSession(); } catch {}
+      try { await client.close(); } catch {}
+      if (attempt === 3 || !/timeout|fetch|network|429|502|503|reset/i.test(error.message)) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
+    }
+  }
+  if (lastError) throw lastError;
   try {
     const listed = (await client.listTools()).tools.map((tool) => tool.name);
     const missing = REQUIRED.filter((name) => !listed.includes(name));

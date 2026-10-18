@@ -15,5 +15,5 @@ const questions = [
 ];
 const evidence = { recordedAt: new Date().toISOString(), snapshot, answers: questions.map((question) => ({ question, ...answerQuestion(snapshot, question) })) };
 await mkdir(new URL("../evidence/", import.meta.url), { recursive: true });
-await writeFile(new URL("../evidence/live-public-example.json", import.meta.url), JSON.stringify(evidence, null, 2) + "\n");
-console.log(JSON.stringify({ file: "evidence/live-public-example.json", snapshotId: snapshot.id, block: snapshot.block.number, status: snapshot.status }, null, 2));
+await writeFile(new URL("../evidence/live-corrected-v2.json", import.meta.url), JSON.stringify(evidence, null, 2) + "\n");
+console.log(JSON.stringify({ file: "evidence/live-corrected-v2.json", snapshotId: snapshot.id, block: snapshot.block.number, status: snapshot.status, engineVersion: snapshot.engineVersion }, null, 2));
