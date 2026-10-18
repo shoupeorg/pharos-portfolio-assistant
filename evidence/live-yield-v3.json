@@ -709,7 +709,7 @@
       "engineVersion": "3.0.0",
       "intent": "yield",
       "status": "ok",
-      "answer": "Verified vault share-value change over the observed period: 1 JTRSY converted to 1.119288 USDC at block 20489933 and 1.119288 USDC at block 20589933. The fixed-share value was unchanged by 0% over 1d 3h 10m 55s. This is historical vault share-value performance, not APR/APY, wallet profit, proof that this wallet held the shares throughout the interval, or a guaranteed future rate. Personal realized earnings remain UNKNOWN because wallet cost basis and ownership history are unavailable. Sources: [SRC-25] [SRC-26] [SRC-27] [SRC-28] [SRC-29] [SRC-24] [SRC-08] [SRC-10] [SRC-16] [SRC-30]",
+      "answer": "Verified vault share-value change over the observed period: 1 JTRSY converted to 1.119288 USDC at block 20489933 and 1.119288 USDC at block 20589933. The fixed-share value was unchanged by 0% over 1d 3h 10m 55s. This wallet has no JTRSY position at the snapshot. The displayed JTRSY performance is a reference vault metric, not earnings from this wallet's holdings. Yield for this wallet's non-zero pRNH position remains unavailable unless independently verified; the JTRSY metric does not apply to pRNH. This is historical vault share-value performance, not APR/APY, wallet profit, proof that this wallet held the shares throughout the interval, or a guaranteed future rate. Personal realized earnings remain UNKNOWN because wallet cost basis and ownership history are unavailable. Sources: [SRC-25] [SRC-26] [SRC-27] [SRC-28] [SRC-29] [SRC-24] [SRC-08] [SRC-10] [SRC-16] [SRC-30] [SRC-11] [SRC-15]",
       "sourceIds": [
         "SRC-25",
         "SRC-26",
@@ -720,7 +720,9 @@
         "SRC-08",
         "SRC-10",
         "SRC-16",
-        "SRC-30"
+        "SRC-30",
+        "SRC-11",
+        "SRC-15"
       ]
     },
     {

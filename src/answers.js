@@ -107,10 +107,26 @@ export function answerQuestion(snapshot, question) {
     const metric = snapshot.performance;
     if (metric?.status === "ok") {
       const direction = BigInt(metric.deltaAssetsRaw) > 0n ? "increased" : BigInt(metric.deltaAssetsRaw) < 0n ? "decreased" : "was unchanged";
+      const jtrsy = snapshot.positions.find((position) => position.adapterId === "centrifuge-jtrsy-usdc" && position.status === "ok");
+      const prnh = snapshot.positions.find((position) => position.adapterId === "centrifuge-hyb-wrapped-usdc" && position.status === "ok");
+      const holdingSources = [];
+      const holdingNotes = [];
+      if (jtrsy && BigInt(jtrsy.shareRaw) === 0n) {
+        holdingNotes.push("This wallet has no JTRSY position at the snapshot. The displayed JTRSY performance is a reference vault metric, not earnings from this wallet's holdings.");
+        holdingSources.push(jtrsy.balanceSourceId);
+      } else {
+        holdingNotes.push("The displayed JTRSY performance is a reference vault metric, not a statement of this wallet's realized earnings.");
+        if (jtrsy?.balanceSourceId) holdingSources.push(jtrsy.balanceSourceId);
+      }
+      if (prnh && BigInt(prnh.shareRaw) > 0n) {
+        holdingNotes.push("Yield for this wallet's non-zero pRNH position remains unavailable unless independently verified; the JTRSY metric does not apply to pRNH.");
+        holdingSources.push(prnh.balanceSourceId);
+      }
+      const ids = [...new Set([...metric.sourceIds, ...holdingSources])];
       return done({
         intent, status: "ok",
-        answer: `Verified vault share-value change over the observed period: ${metric.fixedShareLabel} converted to ${metric.startAssetsFormatted} ${metric.assetSymbol} at block ${metric.start.blockNumber} and ${metric.endAssetsFormatted} ${metric.assetSymbol} at block ${metric.end.blockNumber}. The fixed-share value ${direction} by ${metric.percentFormatted}% over ${formatElapsed(metric.elapsedSeconds)}. This is historical vault share-value performance, not APR/APY, wallet profit, proof that this wallet held the shares throughout the interval, or a guaranteed future rate. Personal realized earnings remain UNKNOWN because wallet cost basis and ownership history are unavailable.${sourceSuffix(metric.sourceIds)}`,
-        sourceIds: metric.sourceIds
+        answer: `Verified vault share-value change over the observed period: ${metric.fixedShareLabel} converted to ${metric.startAssetsFormatted} ${metric.assetSymbol} at block ${metric.start.blockNumber} and ${metric.endAssetsFormatted} ${metric.assetSymbol} at block ${metric.end.blockNumber}. The fixed-share value ${direction} by ${metric.percentFormatted}% over ${formatElapsed(metric.elapsedSeconds)}. ${holdingNotes.join(" ")} This is historical vault share-value performance, not APR/APY, wallet profit, proof that this wallet held the shares throughout the interval, or a guaranteed future rate. Personal realized earnings remain UNKNOWN because wallet cost basis and ownership history are unavailable.${sourceSuffix(ids)}`,
+        sourceIds: ids
       });
     }
     const ids = metric?.sourceIds || [];

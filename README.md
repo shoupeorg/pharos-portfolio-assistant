@@ -59,7 +59,10 @@ Where is my USDC?
 What am I earning?
 1 JTRSY converted to 1.119288 USDC at block 20489933 and 1.119288 USDC at
 block 20589933: 0% vault share-value change over 1d 3h 10m 55s. This is not
-APR/APY or wallet profit. Personal realized earnings remain UNKNOWN.
+APR/APY or wallet profit. This wallet has zero JTRSY at the snapshot, so the
+JTRSY result is a reference vault metric—not earnings from its holdings. Its
+non-zero pRNH position has no independently verified yield metric. Personal
+realized earnings remain UNKNOWN.
 ```
 
 The original v1 snapshot remains unchanged in [`evidence/live-public-example.json`](./evidence/live-public-example.json), and corrected adapter evidence remains in [`evidence/live-corrected-v2.json`](./evidence/live-corrected-v2.json). Genuine engine-v3 yield evidence is stored separately in [`evidence/live-yield-v3.json`](./evidence/live-yield-v3.json). See [`evidence/manifest.md`](./evidence/manifest.md) for requirement mapping.
@@ -90,6 +93,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\publish-deploy
 - `0` is a successful read. A timeout/revert is `FAILED`; other successful adapters stay visible and answers become `PARTIAL`.
 - The yield metric uses exactly `1 JTRSY` (`1,000,000` share atomic units) at the current portfolio block and exactly `100,000` blocks earlier. At each endpoint the adapter verifies historical code and the vault's USDC asset/JTRSY share relationship, then calls `convertToAssets` through Chain MCP. Percentage change is `(endAssets - startAssets) / startAssets × 100`, calculated with `BigInt` at six decimal percentage precision.
 - The metric is labeled **vault share-value change over the observed period**. It is not annualized, not APR/APY, not personal profit, and does not imply that the queried wallet owned shares throughout the interval. Personal realized earnings remain unknown without cost basis and ownership history.
+- For the recorded public example, JTRSY is a successful zero holding while pRNH is non-zero. The JTRSY performance is therefore presented only as a reference vault metric. It is not attributed to the wallet, and it is not applied to pRNH; pRNH yield remains unavailable without an independently verified source.
 - The method follows Centrifuge's documented [`convertToAssets` share-price guidance](https://docs.centrifuge.io/developer/protocol/guides/invest-into-a-vault/) and [ERC-4626 conversion semantics](https://eips.ethereum.org/EIPS/eip-4626). Historical-read failure preserves the honest `UNKNOWN` fallback.
 
 ## Read-only security

@@ -4,10 +4,14 @@ import { answerQuestion } from "../src/answers.js";
 import { calculateShareValueChange, formatElapsed } from "../src/performance.js";
 
 function performanceSnapshot({ start = "1000000", end = "1100000", elapsed = "100000", status = "ok" } = {}) {
-  const observations = ["SRC-A", "SRC-B", "SRC-C", "SRC-D"].map((id) => ({ id, status: "ok", kind: "performance-test" }));
+  const observations = ["SRC-A", "SRC-B", "SRC-C", "SRC-D", "SRC-J", "SRC-P"].map((id) => ({ id, status: "ok", kind: "performance-test" }));
   const calculated = status === "ok" ? calculateShareValueChange(start, end, 6, elapsed) : {};
   return {
-    observations, positions: [], engineVersion: "3.0.0",
+    observations, engineVersion: "3.0.0",
+    positions: [
+      { adapterId: "centrifuge-jtrsy-usdc", status: "ok", shareRaw: "0", balanceSourceId: "SRC-J" },
+      { adapterId: "centrifuge-hyb-wrapped-usdc", status: "ok", shareRaw: "99670437472344590008", balanceSourceId: "SRC-P" }
+    ],
     performance: status === "ok" ? {
       status, metric: "vault-share-value-change", fixedShareLabel: "1 JTRSY", assetSymbol: "USDC",
       start: { blockNumber: 100, timestamp: 1000, assetsRaw: start },
@@ -37,6 +41,12 @@ test("yield answer reports observed vault performance without claiming personal 
   assert.match(answer.answer, /10%/);
   assert.match(answer.answer, /not APR\/APY/);
   assert.match(answer.answer, /Personal realized earnings remain UNKNOWN/);
+  assert.match(answer.answer, /no JTRSY position at the snapshot/);
+  assert.match(answer.answer, /reference vault metric, not earnings from this wallet's holdings/);
+  assert.match(answer.answer, /non-zero pRNH position remains unavailable unless independently verified/);
+  assert.match(answer.answer, /JTRSY metric does not apply to pRNH/);
+  assert.ok(answer.sourceIds.includes("SRC-J"));
+  assert.ok(answer.sourceIds.includes("SRC-P"));
   assert.doesNotMatch(answer.answer, /current position.*earnings/i);
   assert.ok(answer.sourceIds.every((id) => snapshot.observations.some((o) => o.id === id)));
 });
