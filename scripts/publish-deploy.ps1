@@ -48,6 +48,11 @@ if ($Updated -eq $Config -and $Config -notmatch [regex]::Escape($DatabaseId)) { 
 [System.IO.File]::WriteAllText($ConfigPath, $Updated, [System.Text.UTF8Encoding]::new($false))
 
 Run 'Apply D1 migrations' { npx.cmd wrangler d1 migrations apply pharos-portfolio-assistant --remote }
+git -c "safe.directory=$SafeProject" diff --quiet -- wrangler.jsonc
+if ($LASTEXITCODE -ne 0) {
+  Run 'Commit the validated D1 binding' { git -c "safe.directory=$SafeProject" add wrangler.jsonc; git -c "safe.directory=$SafeProject" commit -m 'Configure Portfolio Assistant D1 binding' }
+  Run 'Publish the D1 binding' { git -c "safe.directory=$SafeProject" push }
+}
 Run 'Deploy Worker' { npm.cmd run deploy }
 Run 'Seed and verify persistent live reviewer evidence' { node.exe scripts/seed-deployed.mjs }
 
