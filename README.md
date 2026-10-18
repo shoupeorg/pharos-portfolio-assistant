@@ -73,6 +73,12 @@ See [`evidence/live-public-example.json`](./evidence/live-public-example.json) f
 
 Apply `migrations/0001_initial.sql` before deployment. Browser refresh reads the stored snapshot; it does not relabel it LIVE. Fresh reads require **LOAD LIVE PORTFOLIO →**.
 
+For an already authenticated Windows PowerShell session, the resumable publisher/deployer creates or reuses exactly one D1 database by exact name, validates a single UUID, migrates, deploys, and seeds live reviewer evidence:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\publish-deploy.ps1
+```
+
 ## Accounting and failure semantics
 
 - JavaScript `BigInt` and decimal strings are used for balances, conversions, totals, and percentages; token amounts are never converted to `Number` for accounting.
